@@ -2,15 +2,15 @@
 
 Tomas una foto con el teléfono, la subes, y en un par de segundos la aplicación te dice qué ve en ella, con un porcentaje al lado de cada cosa. La foto queda guardada en un bucket de Cloud Storage y aparece en una galería con las últimas fotos del grupo. Quien reconoce lo que hay en la imagen no es código tuyo: es Cloud Vision, un modelo que Google ya entrenó y que se usa con una petición HTTP.
 
-La plantilla trae las dos aplicaciones completas y la infraestructura del frontend y el backend. Tu grupo construye en Terraform el bucket, el permiso del backend sobre él y el acceso a Vision.
+El repositorio parte de una plantilla que ya traía las dos aplicaciones y la infraestructura del frontend y el backend. Nosotros agregamos en Terraform el bucket, el permiso del backend sobre él y el acceso a Vision.
 
 | Sin bucket todavía | Con etiquetas | La galería |
 |---|---|---|
 | ![El backend avisa que no tiene bucket](docs/capturas/sin-bucket.jpg) | ![Una foto con sus etiquetas](docs/capturas/etiquetas.jpg) | ![La galería del grupo](docs/capturas/galeria.jpg) |
 
-Las capturas salen de una prueba local: Cloud Storage simulado y, en lugar de Vision, un modelo de clasificación pequeño corriendo en el computador. Por eso las etiquetas de las capturas no son las de Vision; las reales las vas a ver cuando lo despliegues.
+Las capturas salen de una prueba local: Cloud Storage simulado y, en lugar de Vision, un modelo de clasificación pequeño corriendo en el computador. Por eso las etiquetas de estas tres capturas no son las de Vision; las del despliegue real están en las evidencias de la fase 3 en adelante.
 
-## Arquitectura al terminar la práctica
+## Arquitectura
 
 ```mermaid
 flowchart LR
@@ -37,9 +37,9 @@ flowchart LR
     backend -.->|"storage.objectUser"| bucket
 ```
 
-La flecha punteada es el único permiso de IAM que da tu grupo: la cuenta del backend puede crear, leer y listar objetos en ese bucket y en ningún otro. Para llamar a Vision no hace falta ningún rol: basta con que la API esté habilitada en el proyecto y con que el backend corra con una cuenta de servicio del mismo proyecto.
+La flecha punteada es el único permiso de IAM que agregamos: la cuenta del backend puede crear, leer y listar objetos en ese bucket y en ningún otro. Para llamar a Vision no hace falta ningún rol: basta con que la API esté habilitada en el proyecto y con que el backend corra con una cuenta de servicio del mismo proyecto.
 
-En la plantilla, la variable `BUCKET` del backend está vacía: responde que no tiene dónde guardar y no guarda nada. Es lo primero que vas a ver al desplegar.
+Mientras la variable `BUCKET` del backend está vacía, este responde que no tiene dónde guardar y no guarda nada. Así quedó el primer despliegue (fase 1).
 
 ## Estructura del repositorio
 
@@ -53,22 +53,23 @@ frontend/Dockerfile        Imagen del frontend
 infra/providers.tf         Versión de Terraform y del proveedor de Google
 infra/variables.tf         Proyecto, prefijo, región e imágenes
 infra/main.tf              APIs, registro, backend y frontend con sus cuentas
-infra/outputs.tf           Ruta del registro y URL de los servicios
-infra/terraform.tfvars.example   Ejemplo de valores; cópialo como terraform.tfvars
+infra/storage.tf           Bucket de fotos, regla de borrado a 7 días y permiso del backend
+infra/outputs.tf           Bucket, ruta del registro y URL de los servicios
+infra/terraform.tfvars.example   Ejemplo de valores; se copia como terraform.tfvars
 docs/api.md                Endpoints del backend y cómo se guardan las fotos
 docs/capturas/             Capturas de la aplicación usadas en este README
-.gitignore                 Deja por fuera el estado de Terraform, tus tfvars y __pycache__
+evidencias/                Capturas de cada fase del despliegue
+.gitignore                 Deja por fuera el estado de Terraform, los tfvars y __pycache__
 ```
 
-## Cómo empezar
+## Cómo desplegar
 
 ### Flujo de trabajo
 
-1. Crea el repositorio de tu grupo con **Use this template** en GitHub.
-2. Edita en VS Code o en github.dev (tecla `.` en la página del repositorio).
-3. Haz commit y push desde el editor.
-4. En Cloud Shell clonas la primera vez y traes los cambios con `git pull` después. Desde Cloud Shell nunca haces push.
-5. Docker y Terraform se ejecutan siempre en Cloud Shell. La consola de Google Cloud es para mirar y diagnosticar, no para crear recursos.
+1. El repositorio salió de la plantilla del curso (**Use this template** en GitHub).
+2. El código se edita en VS Code y se sube con commit y push desde el editor.
+3. En Cloud Shell se clonó una vez y después solo se hace `git pull`. Desde Cloud Shell nunca se hace push.
+4. Docker, Cloud Build y Terraform se ejecutan en Cloud Shell. La consola de Google Cloud se usó para mirar y diagnosticar, no para crear recursos.
 
 ### Primer despliegue
 
@@ -81,7 +82,7 @@ cp terraform.tfvars.example terraform.tfvars
 cloudshell edit terraform.tfvars
 ```
 
-En `terraform.tfvars` pon el ID de tu proyecto y el prefijo del grupo, y ajusta las rutas de las imágenes a esos mismos valores. Este archivo vive solo en Cloud Shell: el `.gitignore` evita que llegue a GitHub.
+En `terraform.tfvars` van el ID del proyecto, el prefijo del grupo (`beyluan`) y las rutas de las imágenes con esos mismos valores. Este archivo vive solo en Cloud Shell: el `.gitignore` evita que llegue a GitHub.
 
 El orden importa, porque las imágenes necesitan el registro y los servicios necesitan las imágenes:
 
@@ -105,13 +106,13 @@ terraform apply
 terraform output
 ```
 
-Abre `url_frontend` en el teléfono. Si usas otra región, cambia `us-central1` en el comando de `gcloud auth configure-docker`, y ten en cuenta que la cuota gratuita de Cloud Storage solo aplica en `us-central1`, `us-east1` y `us-west1`.
+La página se abre desde `url_frontend`, por ejemplo en el teléfono. Con otra región habría que cambiar `us-central1` en el comando de `gcloud auth configure-docker`; la cuota gratuita de Cloud Storage solo aplica en `us-central1`, `us-east1` y `us-west1`, y por eso usamos `us-central1`.
 
-Cuando cambies el código de un servicio, construye y sube la imagen con una etiqueta nueva (`v2`, `v3`...), actualízala en `terraform.tfvars` y vuelve a aplicar. Si subes otra vez la misma etiqueta, Terraform no ve ningún cambio y Cloud Run sigue con la versión anterior.
+Cuando cambia el código de un servicio hay que construir y subir la imagen con una etiqueta nueva (`v2`, `v3`...), actualizarla en `terraform.tfvars` y volver a aplicar. Si se sube otra vez la misma etiqueta, Terraform no ve ningún cambio y Cloud Run sigue con la versión anterior. En este proyecto las imágenes se construyeron con `gcloud builds submit` (ver incidencias).
 
 ## Probar cada servicio con `docker run`
 
-Antes de subir una imagen, pruébala en Cloud Shell. Para ver una página servida en Cloud Shell usa **Vista previa en la Web** y elige el puerto.
+Antes de subir una imagen se puede probar en Cloud Shell. Para ver una página servida ahí se usa **Vista previa en la Web** con el puerto elegido.
 
 **Frontend.** No necesita credenciales:
 
@@ -119,7 +120,7 @@ Antes de subir una imagen, pruébala en Cloud Shell. Para ver una página servid
 docker run --rm -p 8080:8080 -e BACKEND_URL=https://<url-del-backend> $REGISTRO/frontend:v1
 ```
 
-Abre la vista previa en el puerto 8080. Si no pasas `BACKEND_URL`, la página va a decir que no pudo hablar con el backend.
+La vista previa se abre en el puerto 8080. Sin `BACKEND_URL`, la página dice que no pudo hablar con el backend.
 
 **Backend sin bucket.** El contenedor arranca aunque no tenga credenciales, y sin la variable `BUCKET` responde con un error claro:
 
@@ -132,7 +133,7 @@ docker rm -f backend
 
 Debe responder `503` con el error en JSON y una advertencia en los registros.
 
-**Backend con bucket.** Cuando el bucket ya existe y la API de Vision está habilitada, puedes darle al contenedor tus propias credenciales:
+**Backend con bucket.** Cuando el bucket ya existe y la API de Vision está habilitada, el contenedor puede usar las credenciales de quien lo corre:
 
 ```bash
 gcloud auth application-default login
@@ -167,8 +168,6 @@ Beymar despliega con su proyecto de Google Cloud.
 Frontend: https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app
 
 Backend: https://beyluan-backend-ivd2fmc7ia-uc.a.run.app
-
-La aplicación debe estar funcionando el día de la revisión.
 
 ## Diagrama propio
 
@@ -216,6 +215,26 @@ El camino de una foto, según el código:
 
 Creamos el repositorio público desde la plantilla y agregamos a los colaboradores; la gráfica de contribuidores muestra tres autores con un commit cada uno. Beymar despliega con su proyecto `project-3111890e-6ba4-4e0e-95f`. Usamos el prefijo `beyluan` y la región `us-central1`, una de las tres con cuota gratuita de Cloud Storage. En Cloud Shell solo hicimos `git clone` y `git pull`; el push siempre salió desde el editor. La segunda captura muestra el `terraform.tfvars` con proyecto, prefijo y rutas de imagen (etiqueta `v1`), el árbol de git limpio y el proyecto activo de `gcloud config list`.
 
+Salida de `gcloud config list` en Cloud Shell, con la cuenta y el proyecto activos:
+
+```
+[accessibility]
+screen_reader = True
+[component_manager]
+disable_update_check = True
+[compute]
+gce_metadata_read_timeout_sec = 30
+[core]
+account = yefreybeimar2005@gmail.com
+disable_usage_reporting = False
+project = project-3111890e-6ba4-4e0e-95f
+universe_domain = googleapis.com
+[metrics]
+environment = devshell
+
+Your active configuration is: [cloudshell-30836]
+```
+
 ![Repositorio y colaboradores](evidencias/evidencia-0a-repositorio-colaboradores.png)
 
 ![Configuración de gcloud y terraform.tfvars](evidencias/evidencia-0b-gcloud-config.png)
@@ -227,6 +246,18 @@ Aplicamos primero solo el registro (`terraform apply -target=google_artifact_reg
 El backend no puede guardar las fotos en su disco porque en Cloud Run el sistema de archivos vive en memoria y se pierde cuando la instancia se detiene. Además pueden correr hasta tres instancias a la vez (`max_instance_count = 3`), cada una con su propio disco, y una foto guardada en una no la vería otra. Por eso las fotos van a un bucket.
 
 El `docker push` desde Cloud Shell falló una y otra vez con `connect: connection refused` hacia `us-central1-docker.pkg.dev`. La cuenta es `roles/owner`, `gcloud auth configure-docker` estaba configurado y el registro respondía por `curl` (HTTP 401); `docker buildx` tampoco pudo descargar su imagen. Para seguir declaramos `cloudbuild.googleapis.com` en la lista de APIs de `infra/main.tf` y construimos las imágenes con `gcloud builds submit` (builds `a82bc149` del backend y `d38458cd` del frontend). Cloud Build usa un bucket de preparación, `project-3111890e-6ba4-4e0e-95f_cloudbuild`, que no está en Terraform, y mostró un aviso informativo de que su cuenta no tiene el rol Logs Writer. No afectó las imágenes y no otorgamos ningún permiso a mano. El resto lo creó solo Terraform.
+
+El `terraform apply` completo de esta fase terminó así:
+
+```
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+registro = "us-central1-docker.pkg.dev/project-3111890e-6ba4-4e0e-95f/beyluan-imagenes"
+url_backend = "https://beyluan-backend-ivd2fmc7ia-uc.a.run.app"
+url_frontend = "https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app"
+```
 
 ![Artifact Registry con las imágenes backend y frontend](evidencias/evidencia-1a-artifact-registry.png)
 
@@ -249,6 +280,24 @@ El `docker push` desde Cloud Shell falló una y otra vez con `connect: connectio
 ### Fase 3: Vision habilitada
 
 Agregamos `"vision.googleapis.com"` a `google_project_service.apis`: una línea y ningún permiso nuevo, porque la cuenta del backend llama a Vision sin rol propio. Desde el teléfono subimos la foto de un trofeo, id `20261102-022043-a248f9`, autor Beymar. Vision devolvió 8 etiquetas: Award 97 %, Trophy 91 %, Brass 86 %, Medal 79 %, Silver 73 %, Gold 72 %, Bronze 60 % y Emblem 59 %. Bronze y Emblem, con confianza menor a 0,7, salen en ámbar (`e.confianza < 0.7` en `index.html`), y todas las etiquetas llegan en inglés. Los registros del backend dejan `Foto 20261102-022043-a248f9 guardada por Beymar, 8 etiquetas`, y la métrica de la API muestra una solicitud a Cloud Vision sin errores.
+
+El `terraform apply` de esta fase creó un solo recurso, la API, y los outputs ya incluían el bucket:
+
+```
+google_project_service.apis["vision.googleapis.com"]: Creating...
+google_project_service.apis["vision.googleapis.com"]: Still creating... [00m10s elapsed]
+google_project_service.apis["vision.googleapis.com"]: Still creating... [00m20s elapsed]
+google_project_service.apis["vision.googleapis.com"]: Creation complete after 21s [id=project-3111890e-6ba4-4e0e-95f/vision.googleapis.com]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+bucket = "project-3111890e-6ba4-4e0e-95f-beyluan-fotos"
+registro = "us-central1-docker.pkg.dev/project-3111890e-6ba4-4e0e-95f/beyluan-imagenes"
+url_backend = "https://beyluan-backend-ivd2fmc7ia-uc.a.run.app"
+url_frontend = "https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app"
+```
 
 ![Teléfono con las etiquetas](evidencias/evidencia-3a-telefono-etiquetas.jpeg)
 
