@@ -93,11 +93,18 @@ resource "google_cloud_run_v2_service" "frontend" {
     }
 
     containers {
-      image = var.imagen_frontend
+      image = var.imagen_backend
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+      }
 
       env {
-        name  = "BACKEND_URL"
-        value = google_cloud_run_v2_service.backend.uri
+        name  = "BUCKET"
+        value = google_storage_bucket.fotos.name
       }
     }
   }
