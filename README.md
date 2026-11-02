@@ -237,7 +237,11 @@ Your active configuration is: [cloudshell-30836]
 
 ![Repositorio y colaboradores](evidencias/evidencia-0a-repositorio-colaboradores.png)
 
+*0a: página Contributors del repositorio, con LouisFzz, angelvesga y Beymarjefreyve, un commit cada uno.*
+
 ![Configuración de gcloud y terraform.tfvars](evidencias/evidencia-0b-gcloud-config.png)
+
+*0b: `gcloud config list` en Cloud Shell con el proyecto `project-3111890e-6ba4-4e0e-95f` y la cuenta que despliega, tras el `terraform.tfvars` y un `git status` limpio.*
 
 ### Fase 1: registro, imágenes y servicios sin bucket
 
@@ -261,11 +265,19 @@ url_frontend = "https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app"
 
 ![Artifact Registry con las imágenes backend y frontend](evidencias/evidencia-1a-artifact-registry.png)
 
+*1a: repositorio `beyluan-imagenes` de Artifact Registry con las imágenes `backend` y `frontend`.*
+
 ![Teléfono con el aviso de bucket no configurado](evidencias/evidencia-1b-telefono-aviso.jpeg)
+
+*1b: la página en el teléfono con el aviso "El backend no tiene un bucket configurado".*
 
 ![Registros del backend: 503 y advertencia de BUCKET vacía](evidencias/evidencia-1c-logs-backend.png)
 
+*1c: registros de `beyluan-backend` con dos `GET /fotos` en 503 y la advertencia "BUCKET está vacía: no hay dónde guardar las fotos".*
+
 ![Historial de Cloud Build con los builds a82bc149 y d38458cd](evidencias/evidencia-1d-cloud-build.png)
+
+*1d: historial de Cloud Build con los builds `d38458cd` (frontend, 20 s) y `a82bc149` (backend, 39 s), ambos exitosos.*
 
 ### Fase 2: bucket y permiso del backend
 
@@ -273,9 +285,15 @@ url_frontend = "https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app"
 
 ![Bucket con las carpetas originales/ y miniaturas/](evidencias/evidencia-2a-bucket-objetos.png)
 
+*2a: bucket `project-3111890e-6ba4-4e0e-95f-beyluan-fotos` (us-central1, Standard, no público) con las carpetas `originales/` y `miniaturas/`.*
+
 ![Galería con la foto sin etiquetas](evidencias/evidencia-2b-galeria-sin-etiquetas.jpeg)
 
+*2b: galería en el teléfono con la foto de Beymar marcada "sin etiquetas".*
+
 ![Registros del backend con el 403 de Vision](evidencias/evidencia-2c-logs-vision-403.png)
+
+*2c: registros de `beyluan-backend` con `POST /fotos` 201 y la advertencia "Vision no respondió: 403 Cloud Vision API has not been used in project...".*
 
 ### Fase 3: Vision habilitada
 
@@ -301,9 +319,15 @@ url_frontend = "https://beyluan-frontend-ivd2fmc7ia-uc.a.run.app"
 
 ![Teléfono con las etiquetas](evidencias/evidencia-3a-telefono-etiquetas.jpeg)
 
+*3a: foto del trofeo subida por Beymar, con 8 etiquetas desde Award 97 % hasta Emblem 59 %.*
+
 ![Registros del backend: foto guardada con 8 etiquetas](evidencias/evidencia-3b-logs-foto-etiquetas.png)
 
+*3b: registro de `beyluan-backend` con `POST /fotos` 201 y "Foto 20261102-022043-a248f9 guardada por Beymar, 8 etiquetas".*
+
 ![API de Cloud Vision habilitada y con tráfico](evidencias/evidencia-3c-api-vision-habilitada.png)
+
+*3c: "APIs y servicios" filtrado por Cloud Vision API, con 1 solicitud, 0 errores y 196 ms de latencia mediana.*
 
 ### Fase 4: pruebas con cinco fotos
 
@@ -335,6 +359,8 @@ En la foto 4 el modelo etiquetó la imagen como pantalla de computador y captura
 
 ![Galería con las fotos de la prueba](evidencias/evidencia-4a-galeria-cinco-fotos.png)
 
+*4a: galería con las cinco fotos de la tabla (zapato oscuro, pantalla, dibujo, destapador, zapato iluminado) y sus etiquetas.*
+
 ### Fase 5: el bucket por dentro
 
 En un bucket común no existen las carpetas: `originales/` y `miniaturas/` forman parte del nombre de cada objeto, por ejemplo `miniaturas/20261102-023218-7ac9b5.jpg`, y la consola las dibuja cortando por las barras. Cada foto genera dos objetos: el original tal como llegó y una miniatura de 1024 px. La miniatura lleva los metadatos `autor`, `etiquetas` (JSON) y `vision`, que vimos con `gcloud storage objects describe`. La foto `20261102-023218-7ac9b5` (autor Beymar, `vision: ok`) trae Shoe 0,954; Sneakers 0,837; Walking Shoe 0,823; Skate shoe 0,622; Outdoor Shoe 0,609 y Synthetic rubber 0,51.
@@ -345,7 +371,11 @@ El backend nunca sirve originales por costo. La salida de Cloud Run hacia Colomb
 
 ![Metadatos de una miniatura](evidencias/evidencia-5a-metadatos-miniatura.png)
 
+*5a: `gcloud storage objects describe` de `miniaturas/20261102-023218-7ac9b5.jpg`, con `size: 58539` y los campos `autor`, `etiquetas` y `vision: ok`.*
+
 ![Tamaño del original y de la miniatura](evidencias/evidencia-5b-tamano-original-miniatura.png)
+
+*5b: `gcloud storage ls -l` con `originales/20261102-023218-7ac9b5.jpeg` de 1.711.088 bytes y su miniatura `.jpg` de 58.539 bytes.*
 
 ### Fase 6: lectura de texto y limpieza a 7 días
 
@@ -355,9 +385,15 @@ Construimos las imágenes como `v2` al desplegar el reto y actualizamos la etiqu
 
 ![Galería en el navegador con el texto leído](evidencias/evidencia-6a-foto-con-texto-front.png)
 
+*6a (navegador): galería con la línea "Texto:" en la caja del Redmi Note 15 5G y en el compendio ICFES Saber 11°.*
+
 ![Metadatos de una miniatura con el campo texto](evidencias/evidencia-6a-foto-con-texto-shell.png)
 
+*6a (shell): metadatos de `miniaturas/20261102-040631-e85e04.jpg` con el campo `texto` de la caja del Redmi Note 15 5G.*
+
 ![Regla de ciclo de vida en la consola](evidencias/evidencia-6b-regla-ciclo-vida.png)
+
+*6b: pestaña Ciclo de vida del bucket con la regla "Borrar objeto, 7 días o más desde que se creó el objeto".*
 
 ### Incidencias y cómo se resolvieron
 
@@ -413,7 +449,11 @@ Para probar el orden destruimos todo con `terraform destroy`, que terminó con `
 
 ![Terraform destroy y comprobación de que no queda nada](evidencias/evidencia-6c-reproduccion-destroy.png)
 
+*6c (destroy): `terraform destroy` con "14 destroyed" y los `gcloud` de Cloud Run, buckets, registros y cuentas `beyluan` devolviendo "Listed 0 items".*
+
 ![Terraform apply con los outputs tras recrear todo](evidencias/evidencia-6c-reproduccion-app.png)
+
+*6c (apply): `terraform apply` con "8 added" y los outputs `bucket`, `registro`, `url_backend` y `url_frontend`, repetidos por correr el comando dos veces.*
 
 ## Preguntas
 
