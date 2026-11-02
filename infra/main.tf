@@ -55,6 +55,11 @@ resource "google_cloud_run_v2_service" "backend" {
           memory = "1Gi"
         }
       }
+
+      env {
+        name  = "BUCKET"
+        value = google_storage_bucket.fotos.name
+      }
     }
   }
 
@@ -93,28 +98,14 @@ resource "google_cloud_run_v2_service" "frontend" {
     }
 
     containers {
-      image = var.imagen_backend
-
-      resources {
-        limits = {
-          cpu    = "1"
-          memory = "1Gi"
-        }
-      }
+      image = var.imagen_frontend
 
       env {
-        name  = "BUCKET"
-        value = google_storage_bucket.fotos.name
+        name  = "BACKEND_URL"
+        value = google_cloud_run_v2_service.backend.uri
       }
     }
   }
 
   depends_on = [google_project_service.apis]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "frontend_publico" {
-  name     = google_cloud_run_v2_service.frontend.name
-  location = google_cloud_run_v2_service.frontend.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
 }
