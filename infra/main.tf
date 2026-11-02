@@ -85,6 +85,13 @@ resource "google_service_account" "frontend" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_cloud_run_v2_service_iam_member" "frontend_publico" {
+  name     = google_cloud_run_v2_service.frontend.name
+  location = google_cloud_run_v2_service.frontend.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
 resource "google_cloud_run_v2_service" "frontend" {
   name                = "${var.prefijo}-frontend"
   location            = var.region
