@@ -20,6 +20,7 @@ BUCKET = os.environ.get("BUCKET", "")
 # hacia los navegadores. Los originales se guardan pero no se sirven.
 LADO_MINIATURA = 1024
 MAX_ETIQUETAS = 8
+MAX_TEXTO = 300  # caracteres del texto leído que se guardan
 MAX_FOTOS_GALERIA = 24
 
 app = Flask(__name__)
@@ -100,6 +101,29 @@ def etiquetar(datos_jpeg):
         return None, str(error)
 
 
+def leer_texto(datos_jpeg):
+    """Pide a Cloud Vision el texto de la imagen (text_detection).
+
+    Devuelve (texto, None) si funcionó, con texto "" si la foto no tiene, o
+    (None, mensaje) si Vision falló. La foto se guarda igual.
+    """
+    try:
+        respuesta = vision_cliente().text_detection(image=vision.Image(content=datos_jpeg))
+        if respuesta.error.message:
+            raise RuntimeError(respuesta.error.message)
+        if not respuesta.text_annotations:
+            return "", None
+        # El primer elemento trae todo el texto; se juntan saltos de línea y
+        # espacios repetidos para que quepa en una línea de la galería.
+        texto = " ".join(respuesta.text_annotations[0].description.split())
+        if len(texto) > MAX_TEXTO:
+            texto = texto[: MAX_TEXTO - 1] + "…"
+        return texto, None
+    except Exception as error:  # noqa: BLE001
+        log.warning("Vision (texto) no respondió: %s", error)
+        return None, str(error)
+
+
 def como_json(blob):
     meta = blob.metadata or {}
     etiquetas = meta.get("etiquetas")
@@ -109,6 +133,7 @@ def como_json(blob):
         "creado": blob.time_created.isoformat() if blob.time_created else None,
         "etiquetas": json.loads(etiquetas) if etiquetas else None,
         "vision": meta.get("vision", "sin etiquetas"),
+        "texto": meta.get("texto", ""),
         "miniatura": f"/fotos/{blob.name.removeprefix('miniaturas/').removesuffix('.jpg')}/miniatura",
     }
 
@@ -144,6 +169,7 @@ def subir():
     # Vision trabaja sobre la miniatura: es más liviana y para etiquetas
     # basta con una imagen pequeña.
     etiquetas, error_vision = etiquetar(miniatura)
+    texto, _ = leer_texto(miniatura)
 
     foto_id = f"{ahora():%Y%m%d-%H%M%S}-{uuid.uuid4().hex[:6]}"
     extension = (archivo.mimetype or "image/jpeg").split("/")[-1]
@@ -158,10 +184,14 @@ def subir():
         "autor": autor,
         "etiquetas": json.dumps(etiquetas, ensure_ascii=False) if etiquetas else "",
         "vision": "ok" if etiquetas is not None else f"error: {error_vision}",
+        "texto": texto or "",
     }
     blob.upload_from_string(miniatura, content_type="image/jpeg")
     blob.reload()
-    log.info("Foto %s guardada por %s, %s etiquetas", foto_id, autor, len(etiquetas or []))
+    log.info(
+        "Foto %s guardada por %s, %s etiquetas, %s caracteres de texto",
+        foto_id, autor, len(etiquetas or []), len(texto or ""),
+    )
     return jsonify(como_json(blob)), 201
 
 

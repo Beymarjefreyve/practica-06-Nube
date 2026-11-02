@@ -99,6 +99,9 @@
   .galeria .pie span { color: var(--suave); display: block; line-height: 1.35; }
   .galeria .pie span.ambar { color: var(--ambar); }
   .vacio { color: var(--suave); padding: 24px 16px; text-align: center; border: 1px dashed var(--borde); border-radius: var(--radio); }
+  .texto { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--fondo); font-size: 14px; word-break: break-word; }
+  .texto b { display: block; margin-bottom: 2px; font-size: 12px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
+  .galeria .pie span.leido { color: var(--texto); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
 </head>
 <body>
@@ -127,6 +130,7 @@
       <p class="quien" id="res-quien"></p>
       <ul id="res-etiquetas" class="etiquetas"></ul>
       <p id="res-sin" class="sin-etiquetas" hidden></p>
+      <p id="res-texto" class="texto" hidden></p>
     </div>
   </section>
 
@@ -207,6 +211,15 @@
       sin.textContent = "La foto se guardó, pero no llegaron etiquetas. Mira los registros del backend.";
       sin.hidden = false;
     }
+    const texto = $("#res-texto");
+    if (foto.texto) {
+      const rotulo = document.createElement("b");
+      rotulo.textContent = "Texto que leyó";
+      texto.replaceChildren(rotulo, document.createTextNode(foto.texto));
+      texto.hidden = false;
+    } else {
+      texto.hidden = true;
+    }
     $("#resultado").hidden = false;
   }
 
@@ -233,6 +246,12 @@
         detalle.className = "ambar";
       }
       pie.append(autor, detalle);
+      if (f.texto) {
+        const leido = document.createElement("span");
+        leido.className = "leido";
+        leido.textContent = "Texto: " + f.texto;
+        pie.append(leido);
+      }
       li.append(img, pie);
       galeria.append(li);
     }

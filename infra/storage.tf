@@ -14,6 +14,16 @@ resource "google_storage_bucket" "fotos" {
   # Sin esto, destroy falla si el bucket tiene fotos adentro.
   force_destroy = true
 
+  # Las fotos de más de 7 días se borran solas, originales y miniaturas.
+  lifecycle_rule {
+    condition {
+      age = 7
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
   depends_on = [google_project_service.apis]
 }
 

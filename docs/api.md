@@ -17,7 +17,7 @@ Cloud Run pone además `PORT`, que los dos servicios respetan.
 
 Formulario `multipart/form-data` con dos campos: `foto` (el archivo) y `autor` (texto, entre 1 y 40 caracteres).
 
-El backend abre la imagen, corrige la orientación que traen las fotos de teléfono, la reduce a una miniatura de 1024 píxeles por su lado mayor, le pide etiquetas a Cloud Vision usando esa miniatura, y guarda en el bucket el original y la miniatura. Responde `201`:
+El backend abre la imagen, corrige la orientación que traen las fotos de teléfono, la reduce a una miniatura de 1024 píxeles por su lado mayor, le pide a Cloud Vision las etiquetas y el texto que aparece en la foto usando esa miniatura (cada foto consume dos unidades de Vision: una por las etiquetas y otra por el texto), y guarda en el bucket el original y la miniatura. Responde `201`:
 
 ```json
 {
@@ -29,6 +29,7 @@ El backend abre la imagen, corrige la orientación que traen las fotos de teléf
     {"nombre": "Coffee cup", "confianza": 0.95}
   ],
   "vision": "ok",
+  "texto": "CAFÉ LA ESQUINA ABIERTO",
   "miniatura": "/fotos/20261026-185734-44f39d/miniatura"
 }
 ```
@@ -54,12 +55,13 @@ miniaturas/20261026-185734-44f39d.jpg     1024 px, JPEG, con metadatos
 
 Las "carpetas" `originales/` y `miniaturas/` no existen como tales: son parte del nombre de cada objeto, y la consola las dibuja a partir de la barra.
 
-La miniatura lleva tres metadatos propios, escritos en la misma operación con que se sube:
+La miniatura lleva cuatro metadatos propios, escritos en la misma operación con que se sube:
 
 | Metadato | Contenido |
 |---|---|
 | `autor` | El nombre que escribió quien subió la foto |
 | `etiquetas` | Las etiquetas en JSON, o vacío si Vision no respondió |
 | `vision` | `ok`, o `error: ...` con el motivo |
+| `texto` | El texto que Vision leyó en la foto (hasta 300 caracteres), o vacío si no hay texto o Vision falló |
 
 Los originales se guardan pero el backend nunca los sirve: lo único que sale hacia los navegadores son las miniaturas.
